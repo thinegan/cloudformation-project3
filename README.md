@@ -66,7 +66,7 @@ The templates below are included in this repository and reference architecture:
 
 After the CloudFormation templates have been deployed, the [stack outputs](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html) contain a link to the load-balanced URLs for each of the deployed microservices.
 
-![stack-outputs](images/stack-outputs.png)
+![stack-outputs](images/cloudformation_stack_output.png)
 
 ## How do I...?
 

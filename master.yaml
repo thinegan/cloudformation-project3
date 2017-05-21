@@ -65,9 +65,9 @@ Mappings:
   EnvMap:
 
     dev:
-      FortigateDomain: "dev-fortigate.kasturicookies.com"
-      Webserver1Domain: "dev1.kasturicookies.com"
-      Webserver2Domain: "dev2.kasturicookies.com"
+      FortigateDomain: "api.kasturicookies.com"
+      Webserver1Domain: "dev.kasturicookies.com"
+      Webserver2Domain: "devel.kasturicookies.com"
       PMFortinetInstanceType: "m3.medium"
 
     staging:

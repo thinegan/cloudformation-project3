@@ -1,15 +1,10 @@
-# Deploying Web Application Architecture with AWS
+# Deploying AWS Architect with Fortinet, Intrusion Prevention System(IPS)
 
 This reference architecture provides a set of YAML templates for deploying the following AWS services :
 - Amazon IAM
 - Amazon VPC
 - Amazon EC2
-- Amazon ELB
-- Amazon AutoScaling
-- Amazon CloudFront
-- Amazon RDS
 - Amazon S3
-- Amazon Cloudwatch
 - Amazon Route53
 - Amazon Security Group & NACL
 
@@ -24,9 +19,7 @@ Before you can deploy this process, you need the following:
 
 ## You can launch this CloudFormation stack in the following Region in your account:
  - US East (N. Virginia)
- - US East (Ohio)
  - US West (N. California)
- - US West (Oregon)
  - Asia Pacific (Tokyo)
  - Asia Pacific (Singapore)
  - Asia Pacific (Sydney)

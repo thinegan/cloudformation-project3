@@ -1,0 +1,44 @@
+# Note, You need at least 1 domain and this is not free tier.
+# Pricing : https://aws.amazon.com/route53/pricing/
+#
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys route53 Setup,
+    Alias Web Elastic Load Balancer to <domain>
+
+Parameters: 
+
+  PMHostedZone:
+    Description: "A reference to the Hosted Zone"
+    Type: "String"
+
+  PMFortigateDomain:
+    Description: "A reference to the Webserver FQDN domain name"
+    Type: "String"
+
+  PMFortigatePublicIP:
+    Description: "A reference to server public ip address"
+    Type: "String"
+
+Resources:
+
+  DNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneName: !Sub "${PMHostedZone}."
+      Comment: "DNS name for Fortigate Web Manager."
+      Name: !Sub "${PMFortigateDomain}."
+      Type: 'A'
+      TTL: '900'
+      ResourceRecords:
+      - !Ref "PMFortigatePublicIP"
+
+Outputs:
+
+  FortigateRoute53:
+    Description: "A reference to the Route53"
+    Value: !Ref "DNSRecord"
+
+
+

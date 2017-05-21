@@ -1,0 +1,31 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template Route-out FG-VM private interface to 10.0.2.0/24-PrivateSubnet1 
+    
+Parameters: 
+
+  PMEth1:
+    Description: "FG-VM private interface"
+    Type: "String"
+
+  PMMyPrivateRouteTable1:
+    Description: "Private Subnets Route Table info to launch instances into"
+    Type: "String"
+
+Resources:
+
+  MyPrivateRouteFGVM:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref "PMMyPrivateRouteTable1"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NetworkInterfaceId: !Ref "PMEth1"
+
+
+Outputs: 
+
+  MyPrivateRouteFGVM: 
+    Description: "A reference to the created VPC"
+    Value: !Ref "MyPrivateRouteFGVM"
+

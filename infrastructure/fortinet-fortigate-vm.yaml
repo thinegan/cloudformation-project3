@@ -1,0 +1,279 @@
+# This template deploys Fortigate-VM service and attach
+# both private and private subnets to Forigate interface
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys Fortigate-VM service and attach
+    both private and private subnets to Forigate interface
+
+Parameters: 
+
+  PMServerEnv:
+    Description: "Server Environment name."
+    ConstraintDescription: "Choose an Environment from the drop down"
+    Type: "String"
+    AllowedValues: 
+      - "dev"
+      - "staging"
+      - "prod"
+
+  PMKeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+
+  PMFortinetInstanceType:
+    Description: "Enter Fortinet available instance type. Default is m3.medium."
+    Type: "String"
+    Default: "m3.medium"
+    AllowedValues: 
+      - "m3.medium"
+      - "m3.large"
+      - "c4.large"
+
+  PMRegionAMIFort:
+    Description: "A reference to the Region AMI"
+    Type: "String"
+
+  PMFortigateSG:
+    Description: "Select the Security Group to use for the EC2 hosts"
+    Type: "AWS::EC2::SecurityGroup::Id"
+
+  PMEth0:
+    Description: "Fortgate - Primary Network IP"
+    Type: "String"
+
+  PMEth1:
+    Description: "Fortgate - Secondary Network IP"
+    Type: "String"
+
+  PMPublicSubnets:
+    Description: "Subnets to launch instances into"
+    Type: "String"
+
+  PMPrivateSubnets:
+    Description: "Subnets to launch instances into"
+    Type: "String"
+
+  SecondaryIPAddressCount:
+    Type: "Number"
+    Default: '2'
+    MinValue: '1'
+    MaxValue: '5'
+    Description: "Number of secondary IP addresses to assign to the network interface (1-5)"
+    ConstraintDescription: "must be a number from 1 to 5."
+
+####### Resources Setup #######
+Resources:
+
+  MyFortigate:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName:
+        Ref: "PMKeyName"
+      AvailabilityZone: !Select [ '0', !GetAZs ]
+      InstanceType:
+        Ref: "PMFortinetInstanceType"
+      BlockDeviceMappings:
+        # Mount Existing Device with changes to volume size and type
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            # This is the Fortigate /root image. You don't need big disk size.
+            VolumeSize: "2"   # Default size: 2GB
+            VolumeType: "gp2" # Default type: standard
+
+        - DeviceName: "/dev/sdb"
+          Ebs:
+            # This is for data logging. If you need to keep large historical data
+            # you can increase the volume size.
+            VolumeSize: "30"  # Default size: 30GB
+            VolumeType: "gp2" # Default type: magnetic
+      ImageId:
+        Ref: "PMRegionAMIFort"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${PMServerEnv}-Fortigate-VM"
+        - Key: "Primary Public Interface"
+          Value: !Ref "PMEth0"
+        - Key: "Secondary Private Interface"
+          Value: !Ref "PMEth1"
+      NetworkInterfaces:
+      - NetworkInterfaceId:
+          Ref: "Eth0"
+        DeviceIndex: '0'
+      - NetworkInterfaceId:
+          Ref: "Eth1"
+        DeviceIndex: '1'
+
+  Eth0:
+    Type: "AWS::EC2::NetworkInterface"
+    Properties:
+      Description: "Primary network interface"
+      GroupSet:
+      - Ref: "PMFortigateSG"
+      SourceDestCheck: 'true'
+      SubnetId:
+        Ref: "PMPublicSubnets"
+      PrivateIpAddress: !Ref "PMEth0"
+      SecondaryPrivateIpAddressCount:
+        Ref: "SecondaryIPAddressCount"
+      Tags:
+      - Key: "Name"
+        Value: "FG-VM public interface"
+      - Key: "Interface"
+        Value: "eth0"
+
+  Eth1:
+    Type: "AWS::EC2::NetworkInterface"
+    Properties:
+      Description: "Secondary network interface"
+      GroupSet:
+      - Ref: "PMFortigateSG"
+      SourceDestCheck: 'false'
+      SubnetId:
+        Ref: "PMPrivateSubnets"
+      PrivateIpAddress: !Ref "PMEth1"
+      Tags:
+      - Key: "Name"
+        Value: "FG-VM private interface"
+      - Key: "Interface"
+        Value: "eth1"
+
+  # Allocate Elastic IP and Associate with Fortigate-VM instance
+  EIPAddress:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "vpc"
+
+  EIPAssoc:
+    Type: "AWS::EC2::EIPAssociation"
+    Properties:
+      NetworkInterfaceId:
+        Ref: "Eth0"
+      AllocationId:
+        Fn::GetAtt:
+        - "EIPAddress"
+        - "AllocationId"
+      PrivateIpAddress:
+        Fn::GetAtt:
+        - "Eth0"
+        - "PrimaryPrivateIpAddress"
+
+  ################################################################
+  # Allocate Elastic IP and Associate with Secondary PrivateIP_1
+  ################################################################
+  EIPAddressSIP1:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "vpc"
+
+  EIPAssocSIP1:
+    Type: "AWS::EC2::EIPAssociation"
+    Properties:
+      NetworkInterfaceId:
+        Ref: "Eth0"
+      AllocationId:
+        Fn::GetAtt:
+        - "EIPAddressSIP1"
+        - "AllocationId"
+      PrivateIpAddress: !Select [ '0', !GetAtt "Eth0.SecondaryPrivateIpAddresses" ]
+
+  ################################################################
+  # Allocate Elastic IP and Associate with Secondary PrivateIP_2
+  ################################################################
+  EIPAddressSIP2:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "vpc"
+
+  EIPAssocSIP2:
+    Type: "AWS::EC2::EIPAssociation"
+    Properties:
+      NetworkInterfaceId:
+        Ref: "Eth0"
+      AllocationId:
+        Fn::GetAtt:
+        - "EIPAddressSIP2"
+        - "AllocationId"
+      PrivateIpAddress: !Select [ '1', !GetAtt "Eth0.SecondaryPrivateIpAddresses" ]
+
+Outputs:
+
+  MyFortigate: 
+    Description: "Fortinet Fortigate-VM"
+    Value: !Ref "MyFortigate"
+
+  EIPAddress: 
+    Description: "Elastic IP Address"
+    Value: !Ref "EIPAddress"
+
+  EIPAddressSIP1: 
+    Description: "Elastic IP Address 1"
+    Value: !Ref "EIPAddressSIP1"
+
+  EIPAddressSIP2: 
+    Description: "Elastic IP Address 2"
+    Value: !Ref "EIPAddressSIP2"
+
+  Eth1:
+    Description: "FG-VM private interface"
+    Value: !Ref "Eth1"
+
+  PrimaryPrivateIPAddress:
+    Value:
+      Fn::Join:
+      - " "
+      - - "IP address"
+        - Fn::GetAtt:
+          - "Eth0"
+          - "PrimaryPrivateIpAddress"
+        - "on subnet"
+        - Ref: "PMPublicSubnets"
+    Description: "Primary private IP address of Eth0"
+
+  PrimaryPrivateIPAddress2:
+    Value:
+      Fn::Join:
+      - " "
+      - - "IP address"
+        - Fn::GetAtt:
+          - "Eth1"
+          - "PrimaryPrivateIpAddress"
+        - "on subnet"
+        - Ref: "PMPrivateSubnets"
+    Description: "Primary private IP address of Eth1"
+
+  SecondaryPrivateIPAddress1:
+    Value:
+      Fn::Join:
+      - " "
+      - - "IP address"
+        - Fn::Select:
+          - '0'
+          - Fn::GetAtt:
+            - "Eth0"
+            - "SecondaryPrivateIpAddresses"
+        - "on subnet"
+        - Ref: "PMPublicSubnets"
+    Description: "1st secondary private IP address of Eth0"
+
+  SecondaryPrivateIPAddress2:
+    Value:
+      Fn::Join:
+      - " "
+      - - "IP address"
+        - Fn::Select:
+          - '1'
+          - Fn::GetAtt:
+            - "Eth0"
+            - "SecondaryPrivateIpAddresses"
+        - "on subnet"
+        - Ref: "PMPublicSubnets"
+    Description: "2nd secondary private IP address of Eth0"
+
+  WPrivateIP1:
+    Value: !Select [ '0', !GetAtt "Eth0.SecondaryPrivateIpAddresses" ]
+    Description: "1st secondary private IP address of Eth0 with ElasticIP"
+
+  WPrivateIP2:
+    Value: !Select [ '1', !GetAtt "Eth0.SecondaryPrivateIpAddresses" ]
+    Description: "2nd secondary private IP address of Eth0 with ElasticIP"

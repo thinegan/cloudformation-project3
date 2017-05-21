@@ -1,0 +1,164 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys Webserver Instances
+
+Parameters: 
+
+  PMKeyName:
+    Default: "MyEC2Key"
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key."
+    Type: "String" 
+
+  PMInstanceType:
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+
+  PMWebServerIP1:
+    # Replace ip address that mapped your primary EIP
+    # Example if the primary ip is 10.0.1.100
+    # then the secondary ip is 10.0.2.100
+    Default: "10.0.2.100"
+    Description: "Update webserver1 with private ip"
+    Type: "String"
+
+  PMWebServerIP2:
+    # Replace ip address that mapped your primary EIP
+    # Example if the primary ip is 10.0.1.101
+    # then the secondary ip is 10.0.2.101
+    Default: "10.0.2.101"
+    Description: "Update webserver2 with private ip"
+    Type: "String"
+
+####### Resources Setup #######
+Resources:
+
+  EC2Webserver1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName: !Ref "PMKeyName"
+      AvailabilityZone: !Select [ '0', !GetAZs ]
+      InstanceType:
+        Fn::ImportValue: !Sub "${AWS::StackName}-PMInstanceType"
+      PrivateIpAddress:
+        Ref: "PMWebServerIP1"
+      ImageId:
+        Fn::ImportValue: !Sub "${AWS::StackName}-PMRegionAMI"
+      SubnetId:
+        Fn::ImportValue: !Sub "${AWS::StackName}-PMPrivateSubnets"
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${AWS::StackName}-PMFortigateSG"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${AWS::StackName}-Webserver1"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum install httpd -y
+          yum install mod_ssl openssl -y
+          yum update -y
+          service httpd start
+          chkconfig httpd on
+          echo "<html><h1>Hello Cloud Gurus Webserver1!</h1></html>" > /var/www/html/index.html
+          /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandleWEB}"  > /tmp/userdata.log
+
+  EC2Webserver2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName: !Ref "PMKeyName"
+      AvailabilityZone: !Select [ '0', !GetAZs ]
+      InstanceType:
+        Fn::ImportValue: !Sub "${AWS::StackName}-PMInstanceType"
+      PrivateIpAddress:
+        Ref: "PMWebServerIP2"
+      ImageId:
+        Fn::ImportValue: !Sub "${AWS::StackName}-PMRegionAMI"
+      SubnetId:
+        Fn::ImportValue: !Sub "${AWS::StackName}-PMPrivateSubnets"
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${AWS::StackName}-PMFortigateSG"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${AWS::StackName}-Webserver2"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum install httpd -y
+          yum install mod_ssl openssl -y
+          yum update -y
+          service httpd start
+          chkconfig httpd on
+          echo "<html><h1>Hello Cloud Gurus Webserver2!</h1></html>" > /var/www/html/index.html
+          /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandleWEB}"  > /tmp/userdata.log
+
+  WaitHandleWEB:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+
+  WaitCondition:
+    Type: "AWS::CloudFormation::WaitCondition"
+    Properties:
+      Handle: !Ref "WaitHandleWEB"
+      Timeout: '300'
+
+  DNSWebserver1:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneName:
+        Fn::Join:
+          - ''
+          - - Fn::ImportValue: !Sub "${AWS::StackName}-PMHostedZone"
+            - "."
+      Comment: "DNS name for Fortigate Web Manager."
+      Name:
+        Fn::Join:
+          - ''
+          - - Fn::ImportValue: !Sub "${AWS::StackName}-PMWebserver1Domain"
+            - "."
+      Type: 'A'
+      TTL: '900'
+      ResourceRecords:
+      - Fn::ImportValue: !Sub "${AWS::StackName}-PMEIPAddressSIP1"
+
+  DNSWebserver2:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneName:
+        Fn::Join:
+          - ''
+          - - Fn::ImportValue: !Sub "${AWS::StackName}-PMHostedZone"
+            - "."
+      Comment: "DNS name for Fortigate Web Manager."
+      Name:
+        Fn::Join:
+          - ''
+          - - Fn::ImportValue: !Sub "${AWS::StackName}-PMWebserver2Domain"
+            - "."
+      Type: 'A'
+      TTL: '900'
+      ResourceRecords:
+      - Fn::ImportValue: !Sub "${AWS::StackName}-PMEIPAddressSIP2"
+
+
+Outputs:
+
+  EC2Webserver1:
+    Description: "Web Server1 Site"
+    Value:
+      Fn::Join:
+        - ''
+        - - "http://"
+          - Fn::ImportValue: !Sub "${AWS::StackName}-PMWebserver1Domain"
+          - "/"
+
+  EC2Webserver2:
+    Description: "Web Server2 Site"
+    Value:
+      Fn::Join:
+        - ''
+        - - "http://"
+          - Fn::ImportValue: !Sub "${AWS::StackName}-PMWebserver2Domain"
+          - "/"

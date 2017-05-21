@@ -1,0 +1,292 @@
+# Note : The Cloudformation Security Group IP address is open by default (testing purpose).
+# You should update Security Group Access with your own IP Address to ensure your instances security.
+#
+# Prerequisites
+# Before you can start this process, you need the following:
+# - Your AWS account must have one VPC available to be created in the selected region
+# - Amazon EC2 key pair
+# - Installed Domain in Route 53.
+# - Installed Certificate (in your selected region & also in us-east-1) 
+#
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This is a master template to create AWS Architect with Fortinet, Intrusion Prevention System(IPS).
+    The following task will be built in this template.
+
+    Last Modified: 20th May 2017
+    Author: Thinegan Ratnam <thinegan@thinegan.com>
+
+###############################################################################################################
+
+Parameters: 
+
+  PMOWNIP:
+    Default: "0.0.0.0/0"
+    Description: "Update this with your own office/home public ip address"
+    Type: "String"
+
+  PMKeyName:
+    Default: "MyEC2Key"
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key."
+    Type: "String" 
+
+  PMTemplateURL:
+    Default: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1"
+    Description: "Enter an existing S3 Cloudformation Bucket."
+    Type: "String"
+
+  PMInstanceType:
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+
+  PMFortinetInstanceType:
+    Description: "Enter Fortinet available instance type. Default is m3.medium."
+    Type: "String"
+    Default: "m3.medium"
+    AllowedValues: 
+      - "m3.medium"
+      - "m3.large"
+      - "c4.large"
+
+  PMHostedZone:
+    Default: "kasturicookies.com"
+    Description: "Enter an existing Hosted Zone."
+    Type: "String"
+
+###############################################################################################################
+#
+# For any additional region & Env, you can add by yourself below.
+Mappings:
+  EnvMap:
+
+    dev:
+      FortigateDomain: "dev-fortigate.kasturicookies.com"
+      Webserver1Domain: "dev1.kasturicookies.com"
+      Webserver2Domain: "dev2.kasturicookies.com"
+      PMFortinetInstanceType: "m3.medium"
+
+    staging:
+      FortigateDomain: "staging-fortigate.kasturicookies.com"
+      Webserver1Domain: "staging1.kasturicookies.com"
+      Webserver2Domain: "staging2.kasturicookies.com"
+      PMFortinetInstanceType: "m3.medium"
+
+    prod:
+      FortigateDomain: "fortigate.kasturicookies.com"
+      Webserver1Domain: "www1.kasturicookies.com"
+      Webserver2Domain: "www2.kasturicookies.com"
+      PMFortinetInstanceType: "c4.large"
+
+
+  RegionMap:
+    # N.Virginia
+    us-east-1:
+      # Brands: Fortinet
+      # Product: Fortinet FortiGate-VM
+      # Description: Intrusion Prevention System(IPS)
+      # url: https://aws.amazon.com/marketplace/pp/B00PCZSWDA?qid=1494650596233&sr=0-2&ref_=srh_res_product_title
+      AMIFort: "ami-97f7d480"
+
+      # AMI Details: https://aws.amazon.com/marketplace/pp/B06XS8WHGJ?ref=cns_srchrow
+      # Amazon ECS-Optimized Amazon Linux AMI (From AWS MarketPlace)
+      AMI: "ami-275ffe31"
+
+      # AStorage - The storage class to which you want the object to transition.
+      AStorage: "GLACIER"
+
+
+    # N.California
+    us-west-1:
+      AMIFort: "ami-76e8a216"
+      AMI: "ami-689bc208"
+      AStorage: "GLACIER"
+
+    # Tokyo
+    ap-northeast-1:
+      AMIFort: "ami-a2b917c3"
+      AMI: "ami-f63f6f91"
+      AStorage: "GLACIER"
+
+    # Singapore
+    ap-southeast-1:
+      AMIFort: "ami-24359547"
+      AMI: "ami-dc9339bf"
+      AStorage: "STANDARD_IA"
+
+    # Sydney
+    ap-southeast-2:
+      AMIFort: "ami-f969569a"
+      AMI: "ami-fbe9eb98"
+      AStorage: "GLACIER"
+
+###############################################################################################################
+
+Resources:
+
+  MyIAMRole:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-iam.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMServerEnv: !Ref "AWS::StackName"
+
+  MyS3Bucket:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-s3bucket.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMServerEnv: !Ref "AWS::StackName"
+        PMRegionAStorage: !FindInMap ["RegionMap", !Ref "AWS::Region", "AStorage"]
+
+  MyVPC:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn:
+    - "MyIAMRole"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-vpc.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMServerEnv: !Ref "AWS::StackName"
+        PMVpcCIDR: "10.0.0.0/16"
+        PMPublicSubnet1CIDR: "10.0.1.0/24"
+        PMPrivateSubnet1CIDR: "10.0.2.0/24"
+        PMFlowLogRole: !GetAtt "MyIAMRole.Outputs.VPCFlowLogRoleArn"
+
+  MySecurityGroup:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn:
+    - "MyVPC"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-securitygroup.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMServerEnv: !Ref "AWS::StackName"
+        PMOWNIP: !Ref "PMOWNIP"
+        PMVPC: !GetAtt "MyVPC.Outputs.VPC"
+        PMNACL: !GetAtt "MyVPC.Outputs.MyNetworkACL"
+
+  MyFortigate:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn:
+    - "MySecurityGroup"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-fortigate-vm.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMEth0: "10.0.1.5"
+        PMEth1: "10.0.2.5"
+        PMServerEnv: !Ref "AWS::StackName"
+        PMKeyName: !Ref "PMKeyName"
+        PMFortinetInstanceType: !Ref "PMFortinetInstanceType"
+        PMRegionAMIFort: !FindInMap ["RegionMap", !Ref "AWS::Region", "AMIFort"]
+        PMFortigateSG: !GetAtt "MySecurityGroup.Outputs.FortigateSG"
+        PMPublicSubnets: !GetAtt "MyVPC.Outputs.PublicSubnets"
+        PMPrivateSubnets: !GetAtt "MyVPC.Outputs.PrivateSubnets"
+
+  MyPrivateSubnet:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn:
+    - "MyFortigate"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-privatesubnet.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMEth1: !GetAtt "MyFortigate.Outputs.Eth1"
+        PMMyPrivateRouteTable1: !GetAtt "MyVPC.Outputs.MyPrivateRouteTable1"
+
+  MyDNS:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn:
+    - "MyPrivateSubnet"
+    Properties:
+      TemplateURL: !Sub "${PMTemplateURL}/fortinet-route53.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        PMFortigatePublicIP: !GetAtt "MyFortigate.Outputs.EIPAddress"
+        PMFortigateDomain: !FindInMap ["EnvMap", !Ref "AWS::StackName", "FortigateDomain"]
+        PMHostedZone: !Ref "PMHostedZone"
+
+
+Outputs:
+
+  FortiGateVM:
+    Description: "Fortigate Web Manager"
+    Value:
+      Fn::Join:
+        - ''
+        - - "https://"
+          - !FindInMap ["EnvMap", !Ref "AWS::StackName", "FortigateDomain"]
+          - "/"
+
+  PMEIPAddressSIP1:
+    Description: "Elastic IP and Associate with Secondary PrivateIP_2"
+    Value: !GetAtt "MyFortigate.Outputs.EIPAddressSIP1"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMEIPAddressSIP1"
+
+  PMEIPAddressSIP2:
+    Description: "Elastic IP and Associate with Secondary PrivateIP_2"
+    Value: !GetAtt "MyFortigate.Outputs.EIPAddressSIP2"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMEIPAddressSIP2"
+
+  PMPrivateSubnets:
+    Description: "A list of the private subnets"
+    Value: !GetAtt "MyVPC.Outputs.PrivateSubnets"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMPrivateSubnets"
+
+  PMPrivateIP1:
+    Description: "A list of the private subnets"
+    Value: !GetAtt "MyFortigate.Outputs.WPrivateIP1"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMPrivateIP1"
+
+  PMFortigateSG: 
+    Description: "A reference to the security group for Proxy hosts"
+    Value: !GetAtt "MySecurityGroup.Outputs.FortigateSG"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMFortigateSG"
+
+  PMRegionAMI:
+    Description: "Region AMI"
+    Value: !FindInMap ["RegionMap", !Ref "AWS::Region", "AMI"]
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMRegionAMI"
+
+  PMInstanceType:
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Value: !Ref "PMInstanceType"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMInstanceType"
+
+  PMHostedZone:
+    Description: "Hosted Zone"
+    Value: !Ref "PMHostedZone"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMHostedZone"
+
+  PMHostedZone:
+    Description: "Hosted Zone"
+    Value: !Ref "PMHostedZone"
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMHostedZone"
+
+  PMWebserver1Domain:
+    Description: "Webserver1 Domain"
+    Value: !FindInMap ["EnvMap", !Ref "AWS::StackName", "Webserver1Domain"]
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMWebserver1Domain"
+
+  PMWebserver2Domain:
+    Description: "Webserver2 Domain"
+    Value: !FindInMap ["EnvMap", !Ref "AWS::StackName", "Webserver2Domain"]
+    Export:
+      Name: !Sub "${AWS::StackName}WEB-PMWebserver2Domain"

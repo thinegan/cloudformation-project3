@@ -24,7 +24,7 @@ Before you can deploy this process, you need the following:
  - Asia Pacific (Singapore)
  - Asia Pacific (Sydney)
 
-![infrastructure-overview](images/webapp-architecture-overview.png)
+![infrastructure-overview](images/fortinet-architecture-overview.png)
 
 The repository consists of a set of nested templates that deploy the following:
 

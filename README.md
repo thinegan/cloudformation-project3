@@ -91,23 +91,23 @@ Example using AWS CLI Command :
 
 
 ```
-Broken down into 2-Stages to avoid too much time consuming and a single process.
-Run Stage1 first before running Stage2, since Stage2 require export variable
-from Stage1. If you don't want to create Cloudfront, then you can avoid Stage2.
+The steps are broken into 2-Stages.
+Stage 1 - Deploy VPC and Fortigate Router
+Stage 2 - Deploy Multi Webservers under Fortigate Router as a testing platform.
 
-Stage1 (~ 25 - 35 minutes)
+Stage1 (~ 20 - 25 minutes)
 ===========================
 To create a environment :
 aws cloudformation create-stack \
 --stack-name <env> \
---capabilities=CAPABILITY_IAM \
---template-body file:////path_to_template//cloudformation-project1//master.yaml
+--capabilities=CAPABILITY_NAMED_IAM \
+--template-body file:////path_to_template//cloudformation-project3//master.yaml
 
 To update a environment :
 aws cloudformation update-stack \
 --stack-name <env> \
---capabilities=CAPABILITY_IAM \
---template-body file:////path_to_template//cloudformation-project1//master.yaml
+--capabilities=CAPABILITY_NAMED_IAM \
+--template-body file:////path_to_template//cloudformation-project3//master.yaml
 
 To delete a environment :
 aws cloudformation delete-stack --stack-name <env>
@@ -115,45 +115,39 @@ aws cloudformation delete-stack --stack-name <env>
 <env> - Note :stack-name that can be used are (dev, staging, prod)
 
 
-Stage2 (~ 35 - 45 minutes)
+Stage2 (~ 5 - 10 minutes)
 ===========================
 To create a environment :
 aws cloudformation create-stack \
---stack-name <envCDN> \
---capabilities=CAPABILITY_IAM \
---template-body file:////path_to_template//cloudformation-project1//infrastructure//webapp-cdn.yaml
+--stack-name <envWEB> \
+--capabilities=CAPABILITY_NAMED_IAM \
+--template-body file:////path_to_template//cloudformation-project3//infrastructure//fortinet-webserver.yaml
 
 To update a environment :
 aws cloudformation update-stack \
---stack-name <envCDN> \
---capabilities=CAPABILITY_IAM \
---template-body file:////path_to_template//cloudformation-project1//infrastructure//webapp-cdn.yaml
+--stack-name <envWEB> \
+--capabilities=CAPABILITY_NAMED_IAM \
+--template-body file:////path_to_template//cloudformation-project3//infrastructure//fortinet-webserver.yaml
 
 To delete a environment :
-aws cloudformation delete-stack --stack-name <envCDN>
+aws cloudformation delete-stack --stack-name <envWEB>
 
-<envCDN> - Note :stack-name that can be used are (devCDN, stagingCDN, prodCDN)
+<envCDN> - Note :stack-name that can be used are (devWEB, stagingWEB, prodWEB)
 
 
 Example :
 aws cloudformation create-stack \
 --stack-name dev \
---capabilities=CAPABILITY_IAM \
---template-body file:////path_to_template//cloudformation-project1//master.yaml
+--capabilities=CAPABILITY_NAMED_IAM \
+--template-body file:////path_to_template//cloudformation-project3//master.yaml
 
 aws cloudformation create-stack \
---stack-name devCDN \
---capabilities=CAPABILITY_IAM \
---template-body file:////path_to_template//cloudformation-project1//infrastructure//webapp-cdn.yaml
+--stack-name devWEB \
+--capabilities=CAPABILITY_NAMED_IAM \
+--template-body file:////path_to_template//cloudformation-project3//infrastructure//fortinet-webserver.yaml
 	
 ```
 
-
-### Adjust the Auto Scaling parameters for ECS hosts and services
-
-The Auto Scaling group scaling policy provided by default launches and maintains a cluster of hosts distributed across two Availability Zones (min: 2, max: 2, desired: 2).
-
-As well as configuring Auto Scaling for the ECS hosts (your pool of compute), you can also configure scaling each individual ECS service. This can be useful if you want to run more instances of each container/task depending on the load or time of day (or a custom CloudWatch metric). To do this, you need to create [AWS::ApplicationAutoScaling::ScalingPolicy](http://docs.aws.amazon.com/pt_br/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html) within your service template.
 
 ### Deploy multiple environments (e.g., dev, staging, production)
 
@@ -167,9 +161,7 @@ This set of templates deploys the following network design:
 | --- | --- | --- | --- |
 | VPC | 10.0.0.0/16 | 65,536 | The whole range used for the VPC and all subnets |
 | Public Subnet 1 | 10.0.1.0/24 | 251 | The public subnet in the first Availability Zone |
-| Public Subnet 2 | 10.0.2.0/24 | 251 | The public subnet in the second Availability Zone |
-| Private Subnet 1 | 10.0.3.0/24 | 251 | The private subnet in the first Availability Zone |
-| Private Subnet 2 | 10.0.4.0/24 | 251 | The private subnet in the second Availability Zone |
+| Public Subnet 2 | 10.0.2.0/24 | 251 | The private subnet in the first Availability Zone |
 
 You can adjust the following section of the [master.yaml](master.yaml) template:
 

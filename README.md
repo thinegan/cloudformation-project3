@@ -95,7 +95,7 @@ The steps are broken into 2-Stages.
 Stage 1 - Deploy VPC and Fortigate Router
 Stage 2 - Deploy Multi Webservers under Fortigate Router as a testing platform.
 
-Stage1 (~ 20 - 25 minutes)
+Stage1 (~ 10 - 15 minutes)
 ===========================
 To create a environment :
 aws cloudformation create-stack \
@@ -172,60 +172,39 @@ PMHostedZone:
   Description: "Enter an existing Hosted Zone."
   Type: "String"
 
-# Update Sub-domain
-# Update Auto Scaling parameters (MIN,MAX,Desired)
+# Update Sub-domain and instance type
 dev:
-  ASMIN: '2'
-  ASMAX: '2'
-  ASDES: '2'
-  WEBDOMAIN: "dev.kasturicookies.com"
-  CDNDOMAIN: "devel.kasturicookies.com"
+  FortigateDomain: "api.kasturicookies.com"
+  Webserver1Domain: "dev.kasturicookies.com"
+  Webserver2Domain: "devel.kasturicookies.com"
+  PMFortinetInstanceType: "m3.medium"
 
 staging:
-  ASMIN: '2'
-  ASMAX: '2'
-  ASDES: '2'
-  WEBDOMAIN: "staging.kasturicookies.com"
-  CDNDOMAIN: "static.kasturicookies.com"
+  FortigateDomain: "staging-fortigate.kasturicookies.com"
+  Webserver1Domain: "staging1.kasturicookies.com"
+  Webserver2Domain: "staging2.kasturicookies.com"
+  PMFortinetInstanceType: "m3.medium"
 
 prod:
-  ASMIN: '2'
-  ASMAX: '5'
-  ASDES: '2'
-  WEBDOMAIN: "www.kasturicookies.com"
-  CDNDOMAIN: "cdn.kasturicookies.com"
-
-# Update Uploaded SSL ARN
-CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/eec1f4f2-2632-4d20-bd8a-fbfbcdb15920"
+  FortigateDomain: "fortigate.kasturicookies.com"
+  Webserver1Domain: "www1.kasturicookies.com"
+  Webserver2Domain: "www2.kasturicookies.com"
+  PMFortinetInstanceType: "c4.large"
 
 # CIDR ranges
-VPC:
-  Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub ${TemplateLocation}/infrastructure/webapp-vpc.yaml
-      Parameters:
-        PMServerEnv:          !Ref "PMServerEnv"
-        PMVpcCIDR:            10.0.0.0/16
-        PMPublicSubnet1CIDR:  10.0.1.0/24
-        PMPublicSubnet2CIDR:  10.0.2.0/24
-        PMPrivateSubnet1CIDR: 10.0.3.0/24
-        PMPrivateSubnet2CIDR: 10.0.4.0/24
-
-# DB Config
-MyRDS:
+MyVPC:
   Type: "AWS::CloudFormation::Stack"
   DependsOn:
-  - "MySecurityGroup"
+  - "MyIAMRole"
   Properties:
-    TemplateURL: !Sub "${PMTemplateURL}/webapp-rds.yaml"
+    TemplateURL: !Sub "${PMTemplateURL}/fortinet-vpc.yaml"
     TimeoutInMinutes: '5'
     Parameters:
-      DatabaseUser: "startupadmin"
-      DatabasePassword: "xxxxxxxx"
-      DatabaseName: !Sub "${AWS::StackName}db"
-      DatabaseSize: '5'
-      DatabaseEngine: "mysql"
-      DatabaseInstanceClass: "db.t2.micro"
+      PMServerEnv: !Ref "AWS::StackName"
+      PMVpcCIDR: "10.0.0.0/16"
+      PMPublicSubnet1CIDR: "10.0.1.0/24"
+      PMPrivateSubnet1CIDR: "10.0.2.0/24"
+      PMFlowLogRole: !GetAtt "MyIAMRole.Outputs.VPCFlowLogRoleArn"
 
 ```
 
@@ -235,7 +214,7 @@ If you found yourself wishing this set of frequently asked questions had an answ
 
 ## Contributing
 
-Please [create a new GitHub issue](https://github.com/thinegan/cloudformation-project1/issues/new) for any feature requests, bugs, or documentation improvements. 
+Please [create a new GitHub issue](https://github.com/thinegan/cloudformation-project3/issues/new) for any feature requests, bugs, or documentation improvements. 
 
 Where possible, please also [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) for the change. 
 

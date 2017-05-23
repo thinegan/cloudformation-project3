@@ -1,11 +1,11 @@
 # Deploying AWS Architect with Fortinet, Intrusion Prevention System(IPS)
 
 ## Fortinet
-Product Information, [Inside FortiOS](http://docs.fortinet.com/uploaded/files/1701/inside-fortios-ips-50.pdf)
-How to [AWS Deployment Setup](http://docs.fortinet.com/uploaded/files/2082/fortigate-aws-deployment.pdf)
-[Video Tips and Configuration](http://help.fortinet.com/fos50hlp/54/Content/FortiOS/fortiOS-HTML5-v2/MediaPage.htm)
-AWS MarketPlace: [Fortinet FortiGate-VM](https://aws.amazon.com/marketplace/pp/B00PCZSWDA?qid=1494650596233&sr=0-2&ref_=srh_res_product_title)
-Video Tutorial to Setup [DDos/Dos Attack Policy](https://www.youtube.com/watch?v=uJr3L61vCsI)
+- Product Information, [Inside FortiOS](http://docs.fortinet.com/uploaded/files/1701/inside-fortios-ips-50.pdf)
+- How to [AWS Deployment Setup](http://docs.fortinet.com/uploaded/files/2082/fortigate-aws-deployment.pdf)
+- [Video Tips and Configuration](http://help.fortinet.com/fos50hlp/54/Content/FortiOS/fortiOS-HTML5-v2/MediaPage.htm)
+- AWS MarketPlace: [Fortinet FortiGate-VM](https://aws.amazon.com/marketplace/pp/B00PCZSWDA?qid=1494650596233&sr=0-2&ref_=srh_res_product_title)
+- Video Tutorial to Setup [DDos/Dos Attack Policy](https://www.youtube.com/watch?v=uJr3L61vCsI)
 
 This reference architecture provides a set of YAML templates for deploying the following AWS services :
 - Amazon IAM

@@ -120,30 +120,38 @@ aws cloudformation delete-stack --stack-name <env>
 ```
 
 #### Stage 2 (Setup Fortinet)
+![fortigate-dashboard](images/fortigate-dashboard.png)
+
 ```
 SSH to the FortiGate
 
-$ssh admin@13.228.38.237
-The authenticity of host '13.228.38.237 (13.228.38.237)' can't be established.
-ED25519 key fingerprint is SHA256:6SVkcGipPCMNN3Kg84ryBgVIK8stPYAQII9FeXrsCnU.
-Are you sure you want to continue connecting (yes/no)? yes
-Warning: Permanently added '13.228.38.237' (ED25519) to the list of known hosts.
-admin@13.228.38.237's password: 
+$ssh admin@xx.xx.xx.xx
+admin@xx.xx.xx.xx's password: 
 FGTAWS00026E526B # 
 
 FGTAWS00026E526B # execute ping 8.8.8.8
 PING 8.8.8.8 (8.8.8.8): 56 data bytes
 64 bytes from 8.8.8.8: icmp_seq=0 ttl=56 time=3.0 ms
 64 bytes from 8.8.8.8: icmp_seq=1 ttl=56 time=2.1 ms
-^C
 --- 8.8.8.8 ping statistics ---
 2 packets transmitted, 2 packets received, 0% packet loss
 round-trip min/avg/max = 2.1/2.5/3.0 ms
 
 FGTAWS00026E526B # execute update-now
 
+Format Disk Logging,
+
+FGTAWS00026E526B # get sys status 
+
+Check "Log hard disk: Need format"
+
+FGTAWS00026E526B # execute formatlogdisk
+Log disk is /dev/xvdb.
+Formatting this storage will erase all data on it, including
+  logs, quarantine files;
+and require the unit to reboot.
+Do you want to continue? (y/n)y
 ```
-![fortigate-dashboard](images/fortigate-dashboard.png)
 
 
 #### Stage 3 (Deploy Multi Webservers under Fortigate Router as a testing platform)

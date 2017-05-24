@@ -97,10 +97,9 @@ Example using AWS CLI Command :
 4. You can run the master.yaml file from your workstation.
 
 
+#### Stage 1
 ```
-The steps are broken into 2-Stages.
-Stage 1 - Deploy VPC and Fortigate Router
-Stage 2 - Deploy Multi Webservers under Fortigate Router as a testing platform.
+Deploy VPC and Fortigate Router
 
 Stage1 (~ 10 - 15 minutes)
 ===========================
@@ -122,12 +121,15 @@ aws cloudformation delete-stack --stack-name <env>
 <env> - Note :stack-name that can be used are (dev, staging, prod)
 ```
 
-## Stage 2 (Setup Fortinet)
+#### Stage 2 (Setup Fortinet)
 
-![stack-outputs](images/cloudformation_stack_output.png)
+![fortigate-dashboard](images/fortigate-dashboard.png)
 
 
+#### Stage 3
 ```
+Deploy Multi Webservers under Fortigate Router as a testing platform.
+
 Stage3 (~ 5 - 10 minutes)
 ===========================
 To create a environment :

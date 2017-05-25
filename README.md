@@ -132,8 +132,6 @@ aws cloudformation delete-stack --stack-name <env>
 
 ![ipv4-webserver-list](images/ipv4-webserver-list.png)
 
-![dos_attack_test1](images/dos_attack_test1.png)
-
 ![some_threat_test_captured](images/some_threat_test_captured.png)
 
 

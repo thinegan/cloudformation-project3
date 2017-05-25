@@ -130,6 +130,8 @@ aws cloudformation delete-stack --stack-name <env>
 
 ![ft-network-interface](images/ft-network-interface.png)
 
+![ipv4-webserver-list](images/ipv4-webserver-list.png)
+
 
 ```
 SSH to the FortiGate

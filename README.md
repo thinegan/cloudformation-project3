@@ -151,6 +151,54 @@ Formatting this storage will erase all data on it, including
   logs, quarantine files;
 and require the unit to reboot.
 Do you want to continue? (y/n)y
+
+Go and Login to Fortigate Management Page,
+https://xxx.xxx.xxx.xxx
+
+- Increase Session TimeOut.
+System >> Setting >> Idle TimeOut = 50 Minutes [Apply]
+
+- Re-Strict Fortigate Control Panel Access
+System >> Administrator >> Edit Trusted Host and update your network ip address.
+
+- Install SSL Cert and CA bundle certs.
+Follow the instruction reference, how to fix fortigate ssl cert :
+https://www.youtube.com/watch?v=gF486X6F6mc
+
+- Update Firmware (Based on the current available firmware) :
+Firmware Version v5.4.2,build9380 (GA) [Update] [Apply]
+Update and Reboot : v5.4.4,build1117
+
+- Configure Network Interface
+Network >> Interfaces
+Select Port1 (WAN1) ->[Edit] and [Save]
+Select Port2 (LAN1) ->[Edit] and [Save]
+
+- Network >> DNS >> Specify Update
+Primary DNS Server   : 8.8.8.8
+Secondary DNS Server : 8.8.4.4
+Local Domain Name : <your domain name>
+
+- Configure Policy & Objects (Add ServerIP)
+Policy & Objects >> Virtual IPs
+Select [+ Create New] >> [Virtual IP]
+
+- Configure Policy & Objects (Add Office/Home NetworkIP)
+Policy & Objects >> Addresses
+Select [+ Create New ] >> [Address]
+
+- Configure Policy & Objects (Add Firewall)
+Policy & Objects >> IPv4 Policy
+Select [+ Create New ]
+1. Outbound Entry
+2. Webserver-SSH Entry
+3. Webserver-HTTP Entry
+4. Webserver-HTTPS Entry
+5. Webserver-ICMP Entry
+
+- Backup Config
+Save conf file to your local machine
+
 ```
 
 

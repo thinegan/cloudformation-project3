@@ -122,6 +122,15 @@ aws cloudformation delete-stack --stack-name <env>
 #### Stage 2 (Setup Fortinet)
 ![fortigate-dashboard](images/fortigate-dashboard.png)
 
+![physical_topology](images/physical_topology.png)
+
+![logical_topology](images/logical_topology.png)
+
+![restrict-access-trusted-host](images/restrict-access-trusted-host.png)
+
+![ft-network-interface](images/ft-network-interface.png)
+
+
 ```
 SSH to the FortiGate
 

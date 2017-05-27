@@ -250,6 +250,9 @@ aws cloudformation create-stack \
 	
 ```
 
+### Download Configuration
+
+Here a sample to configuration that you can use [FGTAWS0005616164_20170526_2359.conf](FGTAWS0005616164_20170526_2359.conf).
 
 ### Deploy multiple environments (e.g., dev, staging, production)
 
